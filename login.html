@@ -1,0 +1,103 @@
+<!doctype html>
+
+<html lang="">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Simple Login</title>
+    <!-- Tailwind CSS v3 CDN with plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style data-purpose="custom-typography">
+      /* Custom font for a more polished minimalist look */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex items-center justify-center p-4 bg-white">
+    <!-- BEGIN: LoginCard -->
+    <main
+      class="w-full max-w-md bg-white rounded-xl shadow-sm p-8 md:p-10"
+      data-purpose="login-container"
+    >
+      <!-- Header Section -->
+      <header class="mb-8">
+        <h1 class="text-2xl font-semibold text-gray-800 tracking-tight">
+          Welcome Back
+        </h1>
+        <p class="text-sm text-gray-500 mt-2">
+          Please enter your details to sign in.
+        </p>
+      </header>
+      <!-- Login Form -->
+      <form
+        action="#"
+        class="space-y-6"
+        data-purpose="login-form"
+        method="POST"
+      >
+        <!-- Username Field -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700" for="username">
+            Username
+          </label>
+          <input
+            class="w-full px-4 py-3 rounded-md border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
+            id="username"
+            name="username"
+            placeholder="Enter your username"
+            required=""
+            type="text"
+          />
+        </div>
+        <!-- Password Field -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label
+              class="block text-sm font-medium text-gray-700"
+              for="password"
+            >
+              Password
+            </label>
+            <a
+              class="text-xs text-gray-400 hover:text-green-600 transition-colors"
+              href="#"
+              >Forgot?</a
+            >
+          </div>
+          <input
+            class="w-full px-4 py-3 rounded-md border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+          />
+        </div>
+        <!-- Submit Button -->
+        <div class="pt-2">
+          <button
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            data-purpose="login-submit-button"
+            type="submit"
+          >
+            Login
+          </button>
+        </div>
+      </form>
+      <!-- Footer Links -->
+      <footer class="mt-8 text-center">
+        <p class="text-sm text-gray-500">
+          Don't have an account?
+          <a
+            class="font-medium text-green-600 hover:text-green-700 underline underline-offset-4"
+            href="#"
+            >Sign up</a
+          >
+        </p>
+      </footer>
+    </main>
+    <!-- END: LoginCard -->
+  </body>
+</html>
