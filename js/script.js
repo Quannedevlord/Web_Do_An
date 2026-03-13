@@ -1,4 +1,4 @@
-
+// js/script.js
 // Menu toggle + Back to top + Login validation + Popup
 // Audio player + Fetch songs
 
