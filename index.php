@@ -411,12 +411,17 @@ if (isset($_SESSION['flash'])) {
     © <?= date('Y') ?> Chill Guy Music – Đồ án lập trình web
 </footer>
 
-<!-- truyền quyền admin từ PHP xuống JS ngay khi trang load -->
+<!-- truyền quyền admin từ PHP xuống JS -->
 <script>
-    // PHP đã kiểm tra session, truyền thẳng xuống JS
-    // true = admin, false = user thường / khách
     window.isLoggedIn = <?= $isAdmin ? 'true' : 'false' ?>;
 </script>
-<script src="js/script.js"></script>
+
+<!-- load từng module JS theo đúng thứ tự -->
+<script src="js/popup.js"></script>      <!-- 1. popup thông báo -->
+<script src="js/ui.js"></script>         <!-- 2. back to top, menu, dark mode -->
+<script src="js/validation.js"></script> <!-- 3. kiểm tra form -->
+<script src="js/player.js"></script>     <!-- 4. audio player -->
+<script src="js/songs.js"></script>      <!-- 5. load/render/xóa bài hát -->
+<script src="js/main.js"></script>       <!-- 6. khởi tạo -->
 </body>
 </html>

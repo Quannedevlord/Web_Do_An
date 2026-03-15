@@ -144,6 +144,7 @@ if (isset($_POST['register'])) {
     </main>
 
 <!-- nhúng JS để chạy form validation phía client -->
-<script src="js/script.js"></script>
+<script src="js/popup.js"></script>
+<script src="js/validation.js"></script>
 </body>
 </html>
