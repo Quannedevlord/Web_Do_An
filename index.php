@@ -26,7 +26,7 @@ if (isset($_SESSION['flash'])) {
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Chill Guy – Music Streaming</title>
+    <title>Chill Wave – Music Streaming</title>
 
     <!-- Tailwind CSS framework -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -94,7 +94,7 @@ if (isset($_SESSION['flash'])) {
                 <span class="material-symbols-outlined">eco</span>
             </div>
             <div>
-                <h1 class="text-lg font-bold leading-tight text-slate-900">Chill Guy</h1>
+                <h1 class="text-lg font-bold leading-tight text-slate-900">Chill Wave</h1>
                 <p class="text-xs font-medium text-slate-500">Premium Listening</p>
             </div>
         </div>
@@ -222,9 +222,9 @@ if (isset($_SESSION['flash'])) {
             <!-- banner hero – giới thiệu playlist nổi bật -->
             <div class="relative overflow-hidden rounded-3xl p-10 bg-gradient-to-br from-primary/20 via-cream to-sage/20 mb-8 border border-white/50 shadow-sm">
                 <div class="relative z-10 flex flex-col gap-4 max-w-lg">
-                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-primary">Editor's Pick</span>
-                    <h2 class="text-5xl font-bold text-slate-900 leading-tight">Pastel Horizons</h2>
-                    <p class="text-slate-600 text-lg">Bộ sưu tập nhạc chill cho buổi sáng tập trung và thư giãn.</p>
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-primary">FEELING AND CHILLING</span>
+                    <h2 class="text-5xl font-bold text-slate-900 leading-tight">CHÂN TRỜI DỊU DÀNG</h2>
+                    <p class="text-slate-600 text-lg">Bộ sưu tập nhạc chill tập trung và thư giãn.</p>
                     <div class="flex gap-3 mt-2">
                         <!-- nút phát ngay – gọi hàm toggle của Player -->
                         <button onclick="window.__player && window.__player.toggle()"
@@ -233,7 +233,7 @@ if (isset($_SESSION['flash'])) {
                             Nghe ngay
                         </button>
                         <button class="bg-white/80 backdrop-blur-md text-slate-700 font-bold px-8 py-3 rounded-full border border-slate-200 hover:bg-white transition-colors">
-                            Lưu playlist
+                            Playlist
                         </button>
                     </div>
                 </div>
@@ -246,10 +246,10 @@ if (isset($_SESSION['flash'])) {
             <!-- data-genre dùng để JS nhận biết và lọc bài hát -->
             <div class="flex gap-3 mb-8 flex-wrap">
                 <div data-genre="all"     class="genre-pill px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold cursor-pointer active-pill">Tất cả</div>
-                <div data-genre="chill"   class="genre-pill px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary/50 cursor-pointer transition-colors">Chill</div>
                 <div data-genre="lofi"    class="genre-pill px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary/50 cursor-pointer transition-colors">Lofi</div>
                 <div data-genre="pop"     class="genre-pill px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary/50 cursor-pointer transition-colors">Pop</div>
                 <div data-genre="ballad"  class="genre-pill px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary/50 cursor-pointer transition-colors">Ballad</div>
+                <div data-genre="phonk" class="genre-pill px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary/50 cursor-pointer transition-colors">Phonk</div>
             </div>
 
             <!-- bảng danh sách bài hát -->
