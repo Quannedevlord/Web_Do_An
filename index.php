@@ -3,14 +3,9 @@
 session_start();
 
 // 2. kiểm tra người dùng đã đăng nhập chưa
-// nếu chưa đăng nhập → chuyển thẳng về trang login, không cho vào
-if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
-    exit;
-}
-
-$isLoggedIn = true;
-$username   = htmlspecialchars($_SESSION['user']);
+// khách chưa đăng nhập vẫn vào được (giống Spotify)
+$isLoggedIn = isset($_SESSION['user']);
+$username   = $isLoggedIn ? htmlspecialchars($_SESSION['user']) : '';
 
 // 3. lấy flash message từ session (thông báo sau khi login/register)
 $flash     = '';
@@ -159,14 +154,7 @@ if (isset($_SESSION['flash'])) {
 
         </nav>
 
-        <!-- card quảng cáo nâng cấp ở cuối sidebar -->
-        <div class="mt-auto bg-primary/10 rounded-2xl p-4">
-            <p class="text-xs font-bold text-primary mb-1">Upgrade to Gold</p>
-            <p class="text-[11px] text-slate-600 mb-3">Chất lượng âm thanh tốt hơn, không quảng cáo.</p>
-            <button class="w-full bg-primary text-white text-xs font-bold py-2 px-4 rounded-xl shadow-md shadow-primary/30">
-                Go Premium
-            </button>
-        </div>
+        <!-- đã xóa card Upgrade to Gold -->
     </aside>
 
 
@@ -194,18 +182,26 @@ if (isset($_SESSION['flash'])) {
                            type="text"/>
                 </div>
 
-                <!-- nút dark mode + avatar người dùng -->
+                <!-- góc trên phải: login/register hoặc avatar -->
                 <div class="flex items-center gap-3 shrink-0">
-                    <button id="darkModeBtn"
-                            class="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600">
-                        <span class="material-symbols-outlined text-[20px]">dark_mode</span>
-                    </button>
 
                     <?php if ($isLoggedIn): ?>
-                        <!-- hiển thị chữ cái đầu tên người dùng làm avatar -->
+                        <!-- đã đăng nhập: hiện avatar + tên -->
+                        <span class="text-sm text-slate-600 font-medium hidden md:block"><?= $username ?></span>
                         <div class="size-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold">
                             <?= strtoupper(substr($username, 0, 1)) ?>
                         </div>
+
+                    <?php else: ?>
+                        <!-- chưa đăng nhập: hiện nút Đăng ký + Đăng nhập như Spotify -->
+                        <a href="register.php"
+                           class="text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors">
+                            Đăng ký
+                        </a>
+                        <a href="login.php"
+                           class="text-sm font-bold bg-primary text-white px-6 py-2 rounded-full shadow-md shadow-primary/30 hover:bg-blue-600 transition-colors">
+                            Đăng nhập
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -249,10 +245,17 @@ if (isset($_SESSION['flash'])) {
                 <!-- tiêu đề bảng + nút thêm bài -->
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-slate-800">Danh sách bài hát</h3>
+                    <?php if ($isLoggedIn): ?>
                     <a href="add_song.php"
                        class="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-primary/20 hover:bg-blue-500 transition-colors">
                         <span class="material-symbols-outlined text-[18px]">add</span> Thêm bài
                     </a>
+                    <?php else: ?>
+                    <a href="login.php"
+                       class="flex items-center gap-2 bg-slate-100 text-slate-600 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-slate-200 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">login</span> Đăng nhập để thêm
+                    </a>
+                    <?php endif; ?>
                 </div>
 
                 <table class="w-full text-left">
@@ -392,7 +395,11 @@ if (isset($_SESSION['flash'])) {
     © <?= date('Y') ?> Chill Guy Music – Đồ án lập trình web
 </footer>
 
-<!-- nhúng file JavaScript vào cuối trang -->
+<!-- truyền trạng thái đăng nhập xuống JavaScript -->
+<script>
+    // biến này để JS biết có hiện nút Sửa/Xóa không
+    window.isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+</script>
 <script src="js/script.js"></script>
 </body>
 </html>
