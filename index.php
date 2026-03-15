@@ -3,9 +3,13 @@
 session_start();
 
 // 2. kiểm tra người dùng đã đăng nhập chưa
-// khách chưa đăng nhập vẫn vào được (giống Spotify)
 $isLoggedIn = isset($_SESSION['user']);
 $username   = $isLoggedIn ? htmlspecialchars($_SESSION['user']) : '';
+
+// 2b. kiểm tra quyền admin
+// isAdmin = true  → thấy Thêm/Sửa/Xóa bài hát
+// isAdmin = false → chỉ nghe nhạc và tìm kiếm
+$isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
 // 3. lấy flash message từ session (thông báo sau khi login/register)
 $flash     = '';
@@ -105,12 +109,14 @@ if (isset($_SESSION['flash'])) {
                 <span class="text-sm font-semibold">Home</span>
             </a>
 
-            <!-- trang thêm bài hát -->
+            <!-- trang thêm bài hát – chỉ hiện với admin -->
+            <?php if ($isAdmin): ?>
             <a href="add_song.php"
                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
                 <span class="material-symbols-outlined">add_circle</span>
                 <span class="text-sm font-medium">Thêm bài hát</span>
             </a>
+            <?php endif; ?>
 
             <!-- thư viện nhạc -->
             <a href="#"
@@ -123,10 +129,17 @@ if (isset($_SESSION['flash'])) {
             <div class="mt-6 mb-2 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Tài khoản</div>
 
             <?php if ($isLoggedIn): ?>
-                <!-- hiển thị tên người dùng khi đã đăng nhập -->
+                <!-- hiển thị tên + badge role -->
                 <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-primary/5">
                     <span class="material-symbols-outlined text-primary">person</span>
-                    <span class="text-sm font-medium text-slate-700"><?= $username ?></span>
+                    <div>
+                        <span class="text-sm font-medium text-slate-700"><?= $username ?></span>
+                        <?php if ($isAdmin): ?>
+                            <span class="block text-[10px] font-bold text-blue-500">👑 Admin</span>
+                        <?php else: ?>
+                            <span class="block text-[10px] text-slate-400">Người dùng</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <!-- nút đăng xuất -->
@@ -245,17 +258,20 @@ if (isset($_SESSION['flash'])) {
                 <!-- tiêu đề bảng + nút thêm bài -->
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-slate-800">Danh sách bài hát</h3>
-                    <?php if ($isLoggedIn): ?>
+                    <?php if ($isAdmin): ?>
+                    <!-- admin: hiện nút Thêm bài -->
                     <a href="add_song.php"
                        class="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-primary/20 hover:bg-blue-500 transition-colors">
                         <span class="material-symbols-outlined text-[18px]">add</span> Thêm bài
                     </a>
-                    <?php else: ?>
+                    <?php elseif (!$isLoggedIn): ?>
+                    <!-- khách: hiện nút Đăng nhập -->
                     <a href="login.php"
                        class="flex items-center gap-2 bg-slate-100 text-slate-600 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-slate-200 transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">login</span> Đăng nhập để thêm
+                        <span class="material-symbols-outlined text-[18px]">login</span> Đăng nhập
                     </a>
                     <?php endif; ?>
+                    <!-- user thường: không hiện nút nào -->
                 </div>
 
                 <table class="w-full text-left">
@@ -395,10 +411,11 @@ if (isset($_SESSION['flash'])) {
     © <?= date('Y') ?> Chill Guy Music – Đồ án lập trình web
 </footer>
 
-<!-- truyền trạng thái đăng nhập xuống JavaScript -->
+<!-- truyền quyền admin từ PHP xuống JS ngay khi trang load -->
 <script>
-    // biến này để JS biết có hiện nút Sửa/Xóa không
-    window.isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+    // PHP đã kiểm tra session, truyền thẳng xuống JS
+    // true = admin, false = user thường / khách
+    window.isLoggedIn = <?= $isAdmin ? 'true' : 'false' ?>;
 </script>
 <script src="js/script.js"></script>
 </body>

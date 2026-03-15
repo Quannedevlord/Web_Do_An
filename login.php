@@ -5,17 +5,17 @@ session_start();
 // 2. kết nối database
 include "config.php";
 
-// 3. biến lưu thông báo lỗi (nếu có)
+// 3. biến lưu thông báo lỗi
 $error = '';
 
 // 4. kiểm tra khi người dùng bấm nút đăng nhập
 if (isset($_POST['login'])) {
 
-    // 5. lấy dữ liệu từ form, trim() để xóa khoảng trắng thừa
+    // 5. lấy dữ liệu từ form
     $email    = trim($_POST['email']    ?? '');
     $password =      $_POST['password'] ?? '';
 
-    // 6. kiểm tra dữ liệu nhập phía server (dù JS đã kiểm tra rồi)
+    // 6. kiểm tra dữ liệu nhập
     if (empty($email) || empty($password)) {
         $error = 'Vui lòng nhập đầy đủ email và mật khẩu';
 
@@ -24,29 +24,35 @@ if (isset($_POST['login'])) {
 
     } else {
         // 7. dùng prepared statement để tránh SQL injection
-        // (KHÔNG dùng chuỗi SQL trực tiếp như: "WHERE email='$email'")
         $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email); // "s" = kiểu string
+        $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        // 8. kiểm tra email có tồn tại trong database không
+        // 8. kiểm tra email có tồn tại không
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
 
-            // 9. kiểm tra mật khẩu bằng password_verify
-            // (so sánh mật khẩu nhập vào với hash đã lưu trong database)
+            // 9. kiểm tra mật khẩu
             if (password_verify($password, $user['password'])) {
 
-                // 10. đăng nhập thành công – lưu thông tin vào session
+                // 10. lưu thông tin vào session
                 $_SESSION['user']    = $user['username'];
                 $_SESSION['user_id'] = $user['id'];
 
-                // 11. lưu flash message để hiển thị sau khi redirect
-                $_SESSION['flash']      = 'Chào mừng ' . $user['username'] . '!';
+                // 11. lưu role vào session để phân quyền
+                // nếu cột role chưa có → mặc định là 'user'
+                $_SESSION['role'] = $user['role'] ?? 'user';
+
+                // 12. flash message theo role
+                if ($_SESSION['role'] === 'admin') {
+                    $_SESSION['flash']      = 'Chào mừng Admin ' . $user['username'] . '!';
+                } else {
+                    $_SESSION['flash']      = 'Chào mừng ' . $user['username'] . '!';
+                }
                 $_SESSION['flash_type'] = 'success';
 
-                // 12. chuyển hướng về trang chủ
+                // 13. chuyển hướng về trang chủ
                 header("Location: index.php");
                 exit;
 
@@ -85,7 +91,7 @@ if (isset($_POST['login'])) {
         <h2 class="text-2xl font-bold text-slate-800 mb-1">Chào mừng trở lại</h2>
         <p class="text-sm text-slate-500 mb-6">Nhập thông tin để đăng nhập.</p>
 
-        <!-- hiển thị lỗi từ server nếu có -->
+        <!-- hiển thị lỗi từ server -->
         <?php if ($error): ?>
             <div class="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-5">
                 ⚠ <?= htmlspecialchars($error) ?>
@@ -93,46 +99,46 @@ if (isset($_POST['login'])) {
         <?php endif; ?>
 
         <!-- form đăng nhập -->
-        <!-- data-purpose="login-form" để JS nhận biết và gắn validation -->
         <form method="POST" data-purpose="login-form" class="space-y-5">
 
-            <!-- ô nhập email -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5" for="email">Email</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
                 <input id="email" name="email" type="email" required
                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
                        placeholder="your@email.com"
                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"/>
             </div>
 
-            <!-- ô nhập mật khẩu -->
             <div>
                 <div class="flex justify-between items-center mb-1.5">
-                    <label class="text-sm font-medium text-slate-700" for="password">Mật khẩu</label>
-                    <a href="#" class="text-xs text-blue-500 hover:text-blue-700">Quên mật khẩu?</a>
+                    <label class="text-sm font-medium text-slate-700">Mật khẩu</label>
                 </div>
                 <input id="password" name="password" type="password" required
                        placeholder="••••••••"
                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"/>
             </div>
 
-            <!-- nút đăng nhập -->
             <button type="submit" name="login"
                     class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all duration-200 mt-2">
                 Đăng nhập
             </button>
         </form>
 
-        <!-- link sang trang đăng ký -->
         <p class="text-center text-sm text-slate-500 mt-6">
             Chưa có tài khoản?
             <a href="register.php" class="font-semibold text-blue-500 hover:text-blue-700 underline underline-offset-2">
                 Đăng ký ngay
             </a>
         </p>
+
+        <!-- về trang chủ không cần đăng nhập -->
+        <div class="mt-4 text-center">
+            <a href="index.php" class="text-sm text-slate-400 hover:text-slate-600 transition-colors">
+                ← Về trang chủ không cần đăng nhập
+            </a>
+        </div>
     </main>
 
-<!-- nhúng JS để chạy form validation phía client -->
 <script src="js/script.js"></script>
 </body>
 </html>

@@ -536,8 +536,18 @@
                 <!-- tên ca sĩ -->
                 <td class="py-4 px-4 text-slate-500">${escHtml(song.artist)}</td>
 
-                <!-- nút sửa và xóa -->
-                <td class="py-4 px-4 text-right">
+                <!-- nút sửa và xóa – chỉ hiện khi đã đăng nhập -->
+                <td class="py-4 px-4 text-right" id="action-${song.id}">
+                </td>
+            </tr>
+        `).join('');
+
+        // thêm nút Sửa/Xóa nếu đã đăng nhập (tránh lỗi backtick lồng nhau)
+        if (window.isLoggedIn) {
+            songs.forEach(song => {
+                const cell = document.getElementById('action-' + song.id);
+                if (!cell) return;
+                cell.innerHTML = `
                     <div class="flex items-center justify-end gap-2">
                         <a href="edit_song.php?id=${song.id}"
                            onclick="event.stopPropagation()"
@@ -548,10 +558,9 @@
                                 class="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
                             🗑 Xóa
                         </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+                    </div>`;
+            });
+        }
 
         // truyền danh sách bài hát vào Player để phát nhạc
         Player.setSongs(songs);
@@ -583,12 +592,15 @@
                 return res.json();
             })
             .then(data => {
-                // kiểm tra có lỗi từ server không
-                if (data.error) {
+                // window.isLoggedIn đã được PHP set sẵn trong index.php
+                // không override ở đây để tránh lệch
+
+                // kiểm tra có bài hát không
+                if (!data.songs || data.songs.length === 0) {
                     renderSongs([]);
                 } else {
                     // render danh sách bài hát lên giao diện
-                    renderSongs(data);
+                    renderSongs(data.songs);
                 }
             })
             .catch(err => {
