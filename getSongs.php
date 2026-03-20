@@ -1,39 +1,53 @@
 <?php
-
-// 1. khởi động session để kiểm tra đăng nhập và role
+// 1. Khởi động session
 session_start();
 
-// 2. kết nối database
+// 2. Kết nối database
 include "config.php";
 
-// 3. thiết lập header JSON
+// 3. Tắt hiển thị lỗi để không hỏng giao diện
+ini_set('display_errors', 0);
+error_reporting(0);
+
 header('Content-Type: application/json; charset=utf-8');
 
-// 4. phân quyền:
-// isAdmin = true  → tài khoản admin → JS hiện nút Sửa/Xóa
-// isAdmin = false → khách / user thường → JS ẩn nút Sửa/Xóa
 $isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
-// 5. lấy tất cả bài hát, bài mới nhất lên đầu
-$sql    = "SELECT id, title, artist, file, image FROM songs ORDER BY created_at DESC";
-$result = mysqli_query($conn, $sql);
-$songs  = array();
+// 4. LẤY NHỮNG GÌ BẢNG CÓ, KHÔNG ĐÒI HỎI THÊM! (Sắp xếp theo ID mới nhất)
+$sql = "SELECT * FROM songs ORDER BY id DESC";
 
-// 6. lặp qua từng bài hát
-if ($result && mysqli_num_rows($result) > 0) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $row['id'] = (int)$row['id'];
-        $songs[]   = $row;
+try {
+    $result = mysqli_query($conn, $sql);
+    $songs = array();
+
+    if ($result && mysqli_num_rows($result) > 0) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['id'] = (int)$row['id'];
+            
+            // Tự động bù đắp nếu database thiếu cột
+            if (!isset($row['image'])) {
+                $row['image'] = '';
+            }
+            if (!isset($row['genre'])) {
+                $row['genre'] = 'other';
+            }
+            
+            $songs[] = $row;
+        }
     }
-}
 
-// 7. trả về JSON gồm:
-// isAdmin → JS dùng để quyết định hiện/ẩn nút Sửa/Xóa
-// songs   → danh sách bài hát
-echo json_encode([
-    'isAdmin' => $isAdmin,
-    'songs'   => $songs
-], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'isAdmin' => $isAdmin,
+        'songs'   => $songs
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Exception $e) {
+    // Nếu có lỗi, trả về danh sách rỗng thay vì sập 500
+    echo json_encode([
+        'isAdmin' => $isAdmin,
+        'songs'   => []
+    ]);
+}
 
 mysqli_close($conn);
 ?>
