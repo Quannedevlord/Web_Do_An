@@ -1,235 +1,182 @@
 /**
- * songs.js – Quản lý danh sách bài hát
- * Bao gồm: loadSongs, renderSongs, deleteSong, tìm kiếm, lọc thể loại
+ * songs.js - Load, render, delete, search, genre filter
  */
+let currentFilteredList = [];
+let allSongsData = [];
+let activeGenre = "all";
 
-// escape HTML để tránh XSS
-function escHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str || '';
-    return d.innerHTML;
+function escHtml(s){const d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
+
+function syncPlayerSongs(list){
+    currentFilteredList = Array.isArray(list) ? [...list] : [];
+    window.currentFilteredList = currentFilteredList;
+    if(typeof Player !== "undefined" && typeof Player.setSongs === "function"){
+        Player.setSongs(currentFilteredList);
+    }
 }
 
+function getSongsByGenre(genre){
+    if(genre === "all") return [...allSongsData];
+    return allSongsData.filter(s => (s.genre || "other").toLowerCase() === genre.toLowerCase());
+}
 
-/* ----------------------------------------------------------------
-   RENDER DANH SÁCH BÀI HÁT
----------------------------------------------------------------- */
-function renderSongs(songs) {
-    const container = document.getElementById('songList');
-    if (!container) return;
+function applySearchFilter(){
+    const input = document.getElementById("searchInput");
+    const kw = (input?.value || "").trim().toLowerCase();
+    const rows = document.querySelectorAll(".song-row");
 
-    if (!songs || songs.length === 0) {
-        container.innerHTML = `
-            <tr>
-                <td colspan="4" style="text-align:center;padding:32px;color:#94a3b8;">
-                    Chưa có bài hát nào.
-                    <a href="add_song.php" style="color:#42a7f0;">Thêm ngay</a>
-                </td>
-            </tr>`;
+    rows.forEach(r => {
+        r.style.display = !kw || r.textContent.toLowerCase().includes(kw) ? "" : "none";
+    });
+
+    const visible = [...rows].filter(r => r.style.display !== "none");
+    const noResult = document.getElementById("noSearchResult");
+    const body = document.getElementById("songList");
+
+    if(!visible.length && kw){
+        if(!noResult && body){
+            const tr = document.createElement("tr");
+            tr.id = "noSearchResult";
+            tr.innerHTML = `<td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">Không tìm thấy "<strong>${escHtml(kw)}</strong>"</td>`;
+            body.appendChild(tr);
+        }
+    } else if(noResult){
+        noResult.remove();
+    }
+}
+
+function renderSongs(songs,{keepMaster=false}={}){
+    const c = document.getElementById("songList");
+    if(!c) return;
+
+    if(!keepMaster){
+        allSongsData = Array.isArray(songs) ? [...songs] : [];
+    }
+
+    syncPlayerSongs(songs || []);
+
+    if(!songs || !songs.length){
+        c.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:#94a3b8;">Chưa có bài hát nào. ${window.isLoggedIn ? '<a href="add_song.php" style="color:#42a7f0;">Thêm ngay</a>' : ""}</td></tr>`;
         return;
     }
 
-    // tạo HTML bảng bài hát
-    container.innerHTML = songs.map((song, i) => `
+    c.innerHTML = songs.map((s,i) => `
         <tr class="song-row group hover:bg-white/80 transition-all cursor-pointer"
-            data-index="${i}"
-            data-genre="${song.genre || 'other'}"
-            onclick="window.__player.selectSong(${i})">
-
-            <td class="py-4 px-4 text-center text-slate-400 song-num">${i + 1}</td>
-
-            <td class="py-4 px-4">
+            data-index="${i}" data-genre="${s.genre || "other"}" data-song-id="${s.id}"
+            onclick="window.__player.playList(window.currentFilteredList||[], ${i})">
+            <td class="py-4 px-3 text-center text-slate-400 song-num">${i+1}</td>
+            <td class="py-4 px-3">
                 <div class="flex items-center gap-3">
-                    <div class="size-10 rounded-lg bg-cover bg-center shadow-sm song-cover"
-                         style="background-image:url('images/${song.image || ''}');background-color:#e2e8f0;">
-                    </div>
-                    <span class="text-slate-900 font-semibold">${escHtml(song.title)}</span>
+                    <div class="size-10 rounded-lg bg-cover bg-center shadow-sm" style="background-image:url('images/${s.image || ""}');background-color:#e2e8f0;"></div>
+                    <span class="text-slate-900 font-semibold">${escHtml(s.title)}</span>
                 </div>
             </td>
+            <td class="py-4 px-3 text-slate-500 hidden md:table-cell">${escHtml(s.artist)}</td>
+            <td class="py-4 px-3 text-right" id="act-${s.id}"></td>
+        </tr>`).join("");
 
-            <td class="py-4 px-4 text-slate-500">${escHtml(song.artist)}</td>
+    songs.forEach(s => {
+        const cell = document.getElementById("act-" + s.id);
+        if(!cell) return;
+        let html = '<div class="flex items-center justify-end gap-1.5">';
 
-            <!-- ô thao tác – JS điền nút Sửa/Xóa nếu là admin -->
-            <td class="py-4 px-4 text-right" id="action-${song.id}"></td>
-        </tr>
-    `).join('');
+        if(window.isUserLogin || window.isLoggedIn){
+            html += `<button onclick="event.stopPropagation();Library.toggleLikeSong(${s.id},this)"
+                   class="text-slate-300 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-50">
+                   <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' ${s.liked ? 1 : 0};color:${s.liked ? "#ef4444" : ""};">favorite</span></button>`;
+        }
 
-    // chỉ admin mới thấy nút Sửa/Xóa
-    if (window.isLoggedIn) {
-        songs.forEach(song => {
-            const cell = document.getElementById('action-' + song.id);
-            if (!cell) return;
-            cell.innerHTML = `
-                <div class="flex items-center justify-end gap-2">
-                    <a href="edit_song.php?id=${song.id}"
-                       onclick="event.stopPropagation()"
-                       class="text-blue-400 hover:text-blue-600 text-xs px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-                       ✏ Sửa
-                    </a>
-                    <button onclick="event.stopPropagation(); deleteSong(${song.id}, this)"
-                            class="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
-                        🗑 Xóa
-                    </button>
-                </div>`;
-        });
-    }
+        if(window.isUserLogin || window.isLoggedIn){
+            html += `<button onclick="event.stopPropagation();Library.showAddToPlaylist(${s.id})"
+                   class="text-slate-300 hover:text-primary transition-colors p-1 rounded-lg hover:bg-blue-50" title="Thêm vào playlist">
+                   <span class="material-symbols-outlined text-[16px]">playlist_add</span></button>`;
+        }
 
-    // truyền vào Player để phát
-    Player.setSongs(songs);
+        if(window.isLoggedIn){
+            html += `<a href="edit_song.php?id=${s.id}" onclick="event.stopPropagation()"
+                   class="text-blue-400 hover:text-blue-600 text-xs px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">✏</a>
+                   <button onclick="event.stopPropagation();deleteSong(${s.id},this)"
+                   class="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">🗑</button>`;
+        }
+
+        html += "</div>";
+        cell.innerHTML = html;
+    });
+
+    applySearchFilter();
 }
 
+function loadSongs(){
+    const c = document.getElementById("songList");
+    if(!c) return;
 
-/* ----------------------------------------------------------------
-   TẢI DANH SÁCH BÀI HÁT BẰNG AJAX
----------------------------------------------------------------- */
-function loadSongs() {
-    const container = document.getElementById('songList');
-    if (!container) return;
+    c.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải...</td></tr>`;
 
-    container.innerHTML = `
-        <tr>
-            <td colspan="4" style="text-align:center;padding:32px;color:#94a3b8;">
-                <span style="animation:spin 1s linear infinite;display:inline-block;">⏳</span>
-                Đang tải bài hát...
-            </td>
-        </tr>`;
-
-    fetch('getSongs.php')
-        .then(res => {
-            if (!res.ok) throw new Error('Lỗi server: ' + res.status);
-            return res.json();
+    fetch("getSongs.php")
+        .then(r => {
+            if(!r.ok) throw new Error("Lỗi server " + r.status);
+            return r.json();
         })
         .then(data => {
-            if (!data.songs || data.songs.length === 0) {
-                renderSongs([]);
-            } else {
-                renderSongs(data.songs);
-            }
+            allSongsData = data.songs || [];
+            renderSongs(getSongsByGenre(activeGenre),{keepMaster:true});
         })
         .catch(err => {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="4" style="text-align:center;padding:32px;color:#ef4444;">
-                        ⚠ Không thể tải dữ liệu.
-                        <button onclick="loadSongs()"
-                                style="color:#42a7f0;background:none;border:none;cursor:pointer;">
-                            Thử lại
-                        </button>
-                    </td>
-                </tr>`;
-            console.error('loadSongs lỗi:', err);
+            c.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:#ef4444;">⚠ Không thể tải dữ liệu. <button onclick="loadSongs()" style="color:#42a7f0;background:none;border:none;cursor:pointer;">Thử lại</button></td></tr>`;
+            console.error(err);
         });
 }
 
+window.deleteSong = function(id,btn){
+    if(!confirm("Xóa bài hát này không?")) return;
 
-/* ----------------------------------------------------------------
-   XÓA BÀI HÁT BẰNG AJAX
----------------------------------------------------------------- */
-window.deleteSong = function (id, btn) {
-    if (!confirm('Bạn có chắc muốn xóa bài hát này không?')) return;
+    const row = btn.closest("tr");
+    row.style.opacity = "0.5";
+    row.style.pointerEvents = "none";
 
-    const row = btn.closest('tr');
-    row.style.opacity       = '0.5';
-    row.style.pointerEvents = 'none';
-
-    fetch(`delete_song.php?id=${id}`)
-        .then(res => res.text())
-        .then(msg => {
-            if (msg.includes('thành công')) {
-                row.style.transition = 'all 0.4s ease';
-                row.style.opacity    = '0';
-                row.style.transform  = 'translateX(20px)';
-                setTimeout(() => {
-                    row.remove();
-                    showPopup('Đã xóa bài hát thành công', 'success');
-                    loadSongs();
-                }, 400);
-            } else {
-                row.style.opacity       = '1';
-                row.style.pointerEvents = '';
-                showPopup('Lỗi khi xóa bài hát', 'error');
-            }
-        })
-        .catch(() => {
-            row.style.opacity       = '1';
-            row.style.pointerEvents = '';
-            showPopup('Lỗi kết nối server', 'error');
-        });
+    fetch(`delete_song.php?id=${id}`).then(r => r.text()).then(msg => {
+        if(msg.includes("thành công")){
+            row.style.transition = "all 0.4s";
+            row.style.opacity = "0";
+            row.style.transform = "translateX(20px)";
+            setTimeout(() => {
+                row.remove();
+                showPopup("Đã xóa bài hát","success");
+                loadSongs();
+            },400);
+        }else{
+            row.style.opacity = "1";
+            row.style.pointerEvents = "";
+            showPopup("Lỗi khi xóa","error");
+        }
+    }).catch(() => {
+        row.style.opacity = "1";
+        row.style.pointerEvents = "";
+        showPopup("Lỗi kết nối","error");
+    });
 };
 
+(function(){
+    const input = document.getElementById("searchInput");
+    if(!input) return;
 
-/* ----------------------------------------------------------------
-   TÌM KIẾM BÀI HÁT REAL-TIME
----------------------------------------------------------------- */
-(function initSearch() {
-    const input = document.getElementById('searchInput');
-    if (!input) return;
-
-    let debounceTimer;
-
-    input.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-
-        // chờ 300ms sau khi ngừng gõ mới lọc
-        debounceTimer = setTimeout(() => {
-            const keyword = input.value.trim().toLowerCase();
-            const rows    = document.querySelectorAll('.song-row');
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(keyword) ? '' : 'none';
-            });
-
-            // hiện thông báo không tìm thấy
-            const visible  = Array.from(rows).filter(r => r.style.display !== 'none');
-            const noResult = document.getElementById('noSearchResult');
-
-            if (visible.length === 0 && keyword !== '') {
-                if (!noResult) {
-                    const tbody = document.querySelector('tbody');
-                    if (tbody) {
-                        const tr = document.createElement('tr');
-                        tr.id = 'noSearchResult';
-                        tr.innerHTML = `
-                            <td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">
-                                Không tìm thấy "<strong>${escHtml(keyword)}</strong>"
-                            </td>`;
-                        tbody.appendChild(tr);
-                    }
-                }
-            } else {
-                if (noResult) noResult.remove();
-            }
-        }, 300);
+    let t;
+    input.addEventListener("input",() => {
+        clearTimeout(t);
+        t = setTimeout(applySearchFilter,300);
     });
 })();
 
-
-/* ----------------------------------------------------------------
-   LỌC THEO THỂ LOẠI (GENRE PILLS)
----------------------------------------------------------------- */
-(function initGenrePills() {
-    const pills = document.querySelectorAll('[data-genre]');
-    if (!pills.length) return;
+(function(){
+    const pills = document.querySelectorAll(".genre-pill[data-genre]");
+    if(!pills.length) return;
 
     pills.forEach(pill => {
-        pill.addEventListener('click', () => {
-            // bỏ active cũ, set active mới
-            pills.forEach(p => p.classList.remove('active-pill'));
-            pill.classList.add('active-pill');
-
-            const genre = pill.dataset.genre;
-            const rows  = document.querySelectorAll('.song-row');
-
-            rows.forEach(row => {
-                if (genre === 'all') {
-                    row.style.display = '';
-                } else {
-                    // lọc theo cột genre từ database
-                    const rowGenre = (row.dataset.genre || '').toLowerCase();
-                    row.style.display = rowGenre === genre.toLowerCase() ? '' : 'none';
-                }
-            });
+        pill.addEventListener("click",() => {
+            pills.forEach(p => p.classList.remove("active-pill"));
+            pill.classList.add("active-pill");
+            activeGenre = pill.dataset.genre || "all";
+            renderSongs(getSongsByGenre(activeGenre),{keepMaster:true});
         });
     });
 })();
