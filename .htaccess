@@ -1,0 +1,13 @@
+# Giảm thời gian chờ kết nối
+<IfModule mod_headers.c>
+    <FilesMatch "\.(mp3|wav|ogg)$">
+        Header set Accept-Ranges "bytes"
+        Header set Cache-Control "public, max-age=2592000"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>
+
+# Tắt nén cho audio (nén audio không giúp ích gì, còn tốn CPU)
+<IfModule mod_deflate.c>
+    SetEnvIfNoCase Request_URI \.(mp3|wav|ogg|m4a)$ no-gzip dont-vary
+</IfModule>

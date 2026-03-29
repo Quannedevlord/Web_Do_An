@@ -1,5 +1,13 @@
 <?php
 include "auth_admin.php"; include "config.php";
+function cleanFilename($name) {
+    $viet  = ['à','á','ả','ã','ạ','ă','ặ','ắ','ằ','ẳ','ẵ','â','ầ','ấ','ẩ','ẫ','ậ','è','é','ẻ','ẽ','ẹ','ê','ề','ế','ể','ễ','ệ','ì','í','ỉ','ĩ','ị','ò','ó','ỏ','õ','ọ','ô','ồ','ố','ổ','ỗ','ộ','ơ','ờ','ớ','ở','ỡ','ợ','ù','ú','ủ','ũ','ụ','ư','ừ','ứ','ử','ữ','ự','ỳ','ý','ỷ','ỹ','ỵ','đ','À','Á','Ả','Ã','Ạ','Ă','Ặ','Ắ','Ằ','Ẳ','Ẵ','Â','Ầ','Ấ','Ẩ','Ẫ','Ậ','È','É','Ẻ','Ẽ','Ẹ','Ê','Ề','Ế','Ể','Ễ','Ệ','Ì','Í','Ỉ','Ĩ','Ị','Ò','Ó','Ỏ','Õ','Ọ','Ô','Ồ','Ố','Ổ','Ỗ','Ộ','Ơ','Ờ','Ớ','Ở','Ỡ','Ợ','Ù','Ú','Ủ','Ũ','Ụ','Ư','Ừ','Ứ','Ử','Ữ','Ự','Ỳ','Ý','Ỷ','Ỹ','Ỵ','Đ'];
+    $latin = ['a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','e','e','e','e','e','e','e','e','e','e','e','i','i','i','i','i','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','u','u','u','u','u','u','u','u','u','u','u','y','y','y','y','y','d','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','E','E','E','E','E','E','E','E','E','E','E','I','I','I','I','I','O','O','O','O','O','O','O','O','O','O','O','O','O','O','O','O','O','U','U','U','U','U','U','U','U','U','U','U','Y','Y','Y','Y','Y','D'];
+    $name = str_replace($viet, $latin, $name);
+    $name = preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+    $name = preg_replace('/_+/', '_', $name);
+    return strtolower(trim($name, '_'));
+}
 $thongBao='';
 
 if(isset($_POST['add'])){
@@ -28,7 +36,7 @@ if(isset($_POST['add'])){
             $mExt=strtolower(pathinfo($_FILES[$musicKey]['name'],PATHINFO_EXTENSION));
             if(in_array($mExt,['mp3','wav','ogg','m4a'])){
                 if(!is_dir('music'))mkdir('music',0755,true);
-                $file=preg_replace('/\s+/','_',$_FILES[$musicKey]['name']);
+                $file = cleanFilename($_FILES[$musicKey]['name']);
                 if(!move_uploaded_file($_FILES[$musicKey]['tmp_name'],'music/'.$file))
                     $file=basename($_FILES[$musicKey]['name']); // fallback
             }
@@ -145,7 +153,7 @@ if(isset($_FILES[$key])&&$_FILES[$key]['error']===UPLOAD_ERR_OK){
                     </div>
                     <select name="genre[]" class="col-span-10 md:col-span-2 px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400 bg-white">
                         <option value="lofi">Lofi</option><option value="pop">Pop</option>
-                        <option value="ballad">Ballad</option><option value="edm">Edm</option>
+                        <option value="ballad">Ballad</option><option value="phonk">EDM</option>
                         <option value="other">Khác</option>
                     </select>
                     <div class="col-span-2 md:col-span-1 flex items-center justify-center"><span class="text-slate-300 text-xs">—</span></div>
@@ -212,7 +220,7 @@ document.getElementById('addRowBtn').addEventListener('click',()=>{
         </div>
             <select name="genre[]" class="col-span-10 md:col-span-2 px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400 bg-white">
                 <option value="lofi">Lofi</option><option value="pop">Pop</option>
-                <option value="ballad">Ballad</option><option value="phonk">Phonk</option>
+                <option value="ballad">Ballad</option><option value="edm">EDM</option>
                 <option value="other">Khác</option>
             </select>
             <button type="button" onclick="this.closest('.song-row').remove()"

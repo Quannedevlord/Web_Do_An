@@ -67,11 +67,22 @@ function renderSongs(songs,{keepMaster=false}={}){
             <td class="py-4 px-3 text-center text-slate-400 song-num">${i+1}</td>
             <td class="py-4 px-3">
                 <div class="flex items-center gap-3">
-                    <div class="size-10 rounded-lg bg-cover bg-center shadow-sm" style="background-image:url('images/${s.image || ""}');background-color:#e2e8f0;"></div>
+                    ${s.image
+                        /* ✅ Dùng <img loading="lazy"> thay background-image
+                           → chỉ load ảnh khi hiện ra màn hình, tiết kiệm băng thông */
+                        ? `<img src="images/${escHtml(s.image)}"
+                               loading="lazy"
+                               decoding="async"
+                               width="40" height="40"
+                               onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'size-10 rounded-lg bg-slate-200 shrink-0'}))"
+                               class="size-10 rounded-lg object-cover shadow-sm shrink-0"
+                               alt="${escHtml(s.title)}"/>`
+                        : `<div class="size-10 rounded-lg bg-slate-200 shrink-0"></div>`
+                    }
                     <span class="text-slate-900 font-semibold">${escHtml(s.title)}</span>
                 </div>
             </td>
-            <td class="py-4 px-3 text-slate-500 hidden md:table-cell">${escHtml(s.artist)}</td>
+            <td class="py-4 px-3 text-slate-500">${escHtml(s.artist)}</td>
             <td class="py-4 px-3 text-right" id="act-${s.id}"></td>
         </tr>`).join("");
 
@@ -101,6 +112,21 @@ function renderSongs(songs,{keepMaster=false}={}){
 
         html += "</div>";
         cell.innerHTML = html;
+    });
+
+    // ✅ Preload nhạc âm thầm khi hover vào bài hát
+    // → khi bấm phát sẽ nhanh hơn vì đã tải trước ~500KB đầu
+    document.querySelectorAll('.song-row').forEach((row, i) => {
+        row.addEventListener('mouseenter', () => {
+            const s = songs[i];
+            if(!s || !s.file || s._preloaded) return;
+            s._preloaded = true;
+            const pre = new Audio();
+            pre.preload = 'auto';
+            pre.src = `stream.php?file=${encodeURIComponent(s.file)}`;
+            pre.load();
+            setTimeout(() => { pre.src = ''; }, 4000); // Giải phóng sau 4s
+        });
     });
 
     applySearchFilter();

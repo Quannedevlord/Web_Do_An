@@ -1,12 +1,15 @@
 /**
- * player.js - Audio Player
- * Fix: prev no random, shuffle/repeat exclusive
+ * player.js – Audio Player hoàn chỉnh
+ * Fix: prev không random, shuffle/repeat loại trừ nhau
+ * Fix: stream qua stream.php để phát nhanh, hỗ trợ Range Request
  */
 const Player = (function(){
     let songs=[],current=-1,isPlaying=false,isShuffled=false,repeatMode=0;
-    // History for prev in shuffle mode
     let history=[];
     const audio=new Audio(),dom={};
+
+    // ✅ Preload metadata thôi, không tải cả file
+    audio.preload = 'metadata';
 
     function resolveDOM(){
         ['playBtn','prevBtn','nextBtn','shuffleBtn','repeatBtn','progressBar','progressTrack',
@@ -24,32 +27,22 @@ const Player = (function(){
         if(dom.playerTitle) dom.playerTitle.textContent=s.title||'Unknown';
         if(dom.playerArtist)dom.playerArtist.textContent=s.artist||'Unknown';
         if(dom.playerCover) dom.playerCover.style.backgroundImage=s.image
-            ?`url('images/${s.image}')`:`url('https://placehold.co/56x56/42a7f0/fff?text=Music')`;
+            ?`url('images/${s.image}')`:`url('https://placehold.co/56x56/42a7f0/fff?text=♪')`;
         if(dom.playBtn){
             const ic=dom.playBtn.querySelector('.material-symbols-outlined');
             if(ic)ic.textContent=isPlaying?'pause':'play_arrow';
         }
-        // Shuffle button
-        if(dom.shuffleBtn){
-            dom.shuffleBtn.classList.toggle('text-primary', isShuffled);
-            dom.shuffleBtn.classList.toggle('text-slate-400', !isShuffled);
-            dom.shuffleBtn.style.color='';
-        }
-        // Repeat button
+        if(dom.shuffleBtn)dom.shuffleBtn.style.color=isShuffled?'#42a7f0':'';
         if(dom.repeatBtn){
             const ic=dom.repeatBtn.querySelector('.material-symbols-outlined');
-            dom.repeatBtn.classList.toggle('text-primary', repeatMode>0);
-            dom.repeatBtn.classList.toggle('text-slate-400', repeatMode===0);
-            dom.repeatBtn.style.color='';
+            dom.repeatBtn.style.color=repeatMode>0?'#42a7f0':'';
             if(ic)ic.textContent=repeatMode===2?'repeat_one':'repeat';
         }
-        // Highlight row
         document.querySelectorAll('.song-row').forEach((row,i)=>{
             row.classList.toggle('playing',i===current);
             const n=row.querySelector('.song-num');
-            if(n)n.innerHTML=(i===current&&isPlaying)?'<span class="eq-icon">&#9654;</span>':(i+1);
+            if(n)n.innerHTML=(i===current&&isPlaying)?'<span class="eq-icon">▶</span>':(i+1);
         });
-        // Like button
         const likeBtn=document.getElementById('likeBtn');
         if(likeBtn&&songs[current]){
             const liked=songs[current].liked;
@@ -65,27 +58,40 @@ const Player = (function(){
         const s=songs[current];if(!s)return;
         window.__playerCurrent=current;
         window.__playerSongs=songs;
-        audio.src=`music/${s.file}`;
-        audio.play()
-            .then(()=>{isPlaying=true;updateUI();showPopup('Dang phat: '+s.title+' - '+s.artist,'info');})
-            .catch(()=>showPopup('Cannot play this song','error'));
+
+        // ✅ Trỏ thẳng file MP3 (bỏ stream.php vì InfinityFree chặn 302)
+        // Nếu file là URL đầy đủ (http...) thì dùng thẳng, còn lại thêm music/
+        const filename = s.file || s.file_path || s.filename || '';
+        audio.src = filename.startsWith('http') ? filename : `music/${filename}`;
+
+        // Hiện loading trong title
+        if(dom.playerTitle) dom.playerTitle.textContent = '⏳ ' + (s.title || 'Unknown');
+
+        audio.oncanplay = () => {
+            if(dom.playerTitle) dom.playerTitle.textContent = s.title || 'Unknown';
+            audio.play()
+                .then(()=>{isPlaying=true;updateUI();showPopup(`▶ ${s.title} – ${s.artist}`,'info');})
+                .catch(()=>showPopup('Không thể phát bài này','error'));
+            audio.oncanplay = null;
+        };
+
+        audio.load();
     }
 
     function toggle(){
-        if(!songs.length){showPopup('No songs available','warning');return;}
+        if(!songs.length){showPopup('Chưa có bài hát nào','warning');return;}
         if(current===-1){current=0;history=[0];playCurrent();return;}
         if(isPlaying){audio.pause();isPlaying=false;}
         else{audio.play();isPlaying=true;}
         updateUI();
     }
 
-    // FIX: prev - prev in shuffle: go back in history
     function prev(){
         if(!songs.length)return;
         if(isShuffled){
             if(history.length>1){
-                history.pop(); // remove current
-                current=history[history.length-1]; // go to prev
+                history.pop();
+                current=history[history.length-1];
             } else {
                 current=Math.floor(Math.random()*songs.length);
                 history=[current];
@@ -97,7 +103,6 @@ const Player = (function(){
         playCurrent();
     }
 
-    // FIX: next - shuffle: random but save to history
     function next(){
         if(!songs.length)return;
         if(isShuffled){
@@ -106,7 +111,7 @@ const Player = (function(){
             current=(current+1)%songs.length;
         }
         history.push(current);
-        if(history.length>50)history.shift(); // limit history
+        if(history.length>50)history.shift();
         playCurrent();
     }
 
@@ -116,25 +121,22 @@ const Player = (function(){
         playCurrent();
     }
 
-    // FIX: Shuffle and Repeat are exclusive
     function toggleShuffle(){
         isShuffled=!isShuffled;
-        if(isShuffled && repeatMode>0){
-            repeatMode=0; // disable repeat when shuffle on
-        }
-        history=[current]; // reset history
+        if(isShuffled && repeatMode>0) repeatMode=0;
+        history=[current];
         updateUI();
-        showPopup(isShuffled?'Shuffle bat':'Shuffle tat','info');
+        showPopup(isShuffled?'🔀 Shuffle bật':'Shuffle tắt','info');
     }
 
     function toggleRepeat(){
         repeatMode=(repeatMode+1)%3;
         if(repeatMode>0 && isShuffled){
-            isShuffled=false; // disable shuffle when repeat on
+            isShuffled=false;
             history=[current];
         }
         updateUI();
-        showPopup(['Repeat tat','Lap tat ca','Lap 1 bai'][repeatMode],'info');
+        showPopup(['Repeat tắt','🔁 Lặp tất cả','🔂 Lặp 1 bài'][repeatMode],'info');
     }
 
     function setVolume(v){
@@ -152,13 +154,10 @@ const Player = (function(){
 
     audio.addEventListener('ended',()=>{
         if(repeatMode===2){
-            // Repeat one
             audio.currentTime=0; audio.play();
         } else if(repeatMode===1){
-            // Repeat all
             next();
         } else {
-            // No repeat
             if(isShuffled){
                 next();
             } else if(current<songs.length-1){
@@ -170,7 +169,7 @@ const Player = (function(){
     });
 
     audio.addEventListener('error',()=>{
-        showPopup('Playback error!','error');
+        showPopup('Lỗi phát nhạc – kiểm tra file!','error');
         isPlaying=false; updateUI();
     });
 
@@ -205,7 +204,6 @@ const Player = (function(){
             window.__playerSongs=songs;
             window.__playerCurrent=current;
         },
-        // Play new list from start
         playList(arr,startIndex=0){
             songs.splice(0,songs.length,...arr);
             window.__playerSongs=songs;
